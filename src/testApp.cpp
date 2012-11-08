@@ -78,14 +78,6 @@ void testApp::update() {
         
         // 手先検出
         unsigned char *pix = depthImage.getPixels();
-        /*int numPixels = depthImage.getWidth() * depthImage.getHeight();
-        for(int i = 0; i < numPixels; i++) {
-            if(pix[i] < nearThreshold && pix[i] > farThreshold) {
-                pix[i] = 255;
-            } else {
-                pix[i] = 0;
-            }
-		}*/
         for (int y=0; y < depthImage.getHeight(); y++) {
             for (int x=0; x < depthImage.getWidth(); x++) {
                 int i = x + y * depthImage.getWidth();
