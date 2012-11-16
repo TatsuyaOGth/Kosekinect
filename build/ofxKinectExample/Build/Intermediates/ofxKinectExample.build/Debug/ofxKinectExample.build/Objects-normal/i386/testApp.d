@@ -179,4 +179,5 @@ dependencies: \
   /Users/tatsuyaogusu/Documents/openFrameworks/of_0071/apps/myApps/Kosekinect/../../../addons/ofxKinect/src/ofxBase3DVideo.h \
   /Users/tatsuyaogusu/Documents/openFrameworks/of_0071/apps/myApps/Kosekinect/src/Particle.h \
   /Users/tatsuyaogusu/Documents/openFrameworks/of_0071/apps/myApps/Kosekinect/src/Shines.h \
-  /Users/tatsuyaogusu/Documents/openFrameworks/of_0071/apps/myApps/Kosekinect/src/RippleCircle.h
+  /Users/tatsuyaogusu/Documents/openFrameworks/of_0071/apps/myApps/Kosekinect/src/RippleCircle.h \
+  /Users/tatsuyaogusu/Documents/openFrameworks/of_0071/apps/myApps/Kosekinect/src/FadeEvent.h
