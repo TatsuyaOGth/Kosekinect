@@ -9,6 +9,9 @@ Particle::Particle(){
     frc.set(0, 0);
     vel.set(0, 0);
     target.set(0, 0);
+    imageId = 0;
+    width = 0;
+    height = 0;
 }
 
 //力(加速度)をリセット

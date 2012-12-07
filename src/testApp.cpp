@@ -30,7 +30,10 @@ void testApp::setup() {
 	angle = 0;
 	kinect.setCameraTiltAngle(angle);
     
-    balloonImg.loadImage("balloon.png");
+    balloonImg[0].loadImage("balloon1.png");
+    balloonImg[1].loadImage("balloon2.png");
+    flowerImg[0].loadImage("flower1.png");
+    flowerImg[1].loadImage("flower2.png");
     shineImg[0].loadImage("Shine1.png");
     shineImg[1].loadImage("Shine2.png");
     shineImg[2].loadImage("Shine3.png");
@@ -41,16 +44,22 @@ void testApp::setup() {
     zukeiImg[1].loadImage("shikaku.png");
     zukeiImg[2].loadImage("maru.png");
     zukeiImg[3].loadImage("takaku.png");
-    mov[0].loadMovie("tsm.mov");
-    mov[1].loadMovie("tsm.mov");
+    mov[0].loadMovie("backmovie2.mov");
+    mov[1].loadMovie("backmovie2.mov");
     mov[0].play();
-    mov[0].setVolume(0);
+    mov[1].play();
     
-    fadeEvent.setFadeVel(5);
+    fadeEvent[0].setFadeVel(5);
+    fadeEvent[1].setFadeVel(5);
+    
+    shineCol[0].set(200, 64, 200, 200);
+    shineCol[1].set(120, 0, 120, 100);
+    shineCol[2].set(160, 40, 160, 200);
+    shineCol[3].set(120, 0, 120, 200);
     
     // 操作パラメータ初期値
     nearThreshold = 255;
-	farThreshold = 240;
+	farThreshold = 197;
     wallThreshold = 5;
     
     handShineMode = false;
@@ -58,16 +67,20 @@ void testApp::setup() {
     movieMode = false;
     blackFadeMode = false;
     debugMode = true;
+    ROIDebug = false;
     maxDistance = 1;
     
     erodeNum = 0;
-    dirateNum = 1;
+    dirateNum = 3;
     
-    ROI_width =   60;
+    ROI_width =   150;
     ROI_bottom =  60;
     ROI_top =     0;
     ROI1.set(ROI_width, ROI_top);
     ROI2.set(kinect.width - ROI_width, kinect.height - ROI_bottom);
+    
+    fadeEvent[0].setOn(true);
+    fadeEvent[1].setOn(false);
 }
 
 //--------------------------------------------------------------
@@ -148,7 +161,8 @@ void testApp::update() {
                 Shines myShine;
                 float vx = ofRandom(-2, 2);
                 myShine.setInitialCondition(pt.x, pt.y, vx, 0);
-                myShine.setInitialGravity(0.02);
+                myShine.setInitialGravity(0.04);
+                myShine.setColor(shineCol[(int)ofRandom(0,4)]);
                 shines.push_back(myShine);
             }
         }
@@ -157,10 +171,11 @@ void testApp::update() {
                 RotateParticle myPar;
                 float vx = ofRandom(-10, 10);
                 float vy = ofRandom(-10, 10);
-                myPar.setInitialCondition(pt.x, pt.y, vx, vy);
-                myPar.setInitialDamping(0.02);
-                myPar.setColor(ofRandom(255),ofRandom(255),ofRandom(255), 200);
-                myPar.setRotate(ofRandom(-3, 3));
+                float vz = ofRandom(10, 15);
+                myPar.setInitialCondition(pt.x, pt.y, 0, vx, vy, vz);
+                myPar.setDamping(0.03);
+                myPar.setColor(ofRandom(255),ofRandom(255),ofRandom(255), 255);
+                myPar.setRotate(ofRandom(-6, 6));
                 zukeis.push_back(myPar);
             }
         }
@@ -196,16 +211,20 @@ void testApp::update() {
         shines[i].reduceLife(ofRandom(2,5));
     }
     for (int i = 0; i < zukeis.size(); i++) {
+        zukeis[i].resetForce();
+        zukeis[i].addDampingForce();
         zukeis[i].update();
-        zukeis[i].reduceLife(ofRandom(3));
+        zukeis[i].reduceLife(ofRandom(2,5));
     }
     for (int i = 0; i < wallShines.size(); i++) {
         wallShines[i].update();
         wallShines[i].reduceLife(ofRandom(2,5));
     }
-    for (int i = 0; i < ponBalloons.size(); i++) {
-        ponBalloons[i].addGravity();
-        ponBalloons[i].update();
+    for (int i = 0; i < balloons.size(); i++) {
+        balloons[i].update();
+    }
+    for (int i = 0; i < flowers.size(); i++) {
+        flowers[i].update();
     }
 
     
@@ -216,7 +235,9 @@ void testApp::update() {
             movImg.setFromPixels(mov[0].getPixels(), kinect.width, kinect.height);
         }
     }
-    fadeEvent.update();
+    fadeEvent[0].update();
+    fadeEvent[1].update();
+
     
     // ===== Main image Update =====
     int w = mainImg.width;
@@ -229,6 +250,7 @@ void testApp::update() {
     unsigned char *dp = grayImage.getPixels();
     unsigned char *movPx = movImg.getPixels();
     
+    /*
     int numDots = mainImg.width * mainImg.height;
     for(int i=0; i < numDots; i++) {
         if (dp[i] >= maxDistance) {
@@ -243,6 +265,15 @@ void testApp::update() {
                     tmpPixels[i*3+1] = rgbPx[i*3+1];
                     tmpPixels[i*3+2] = rgbPx[i*3+2];
                 }
+                //tmpBinaryPx[i] = 255;
+            } else {
+                tmpPixels[i*3+0] = rgbPx[i*3+0]; //ムービーモードでない場合、前景はKinectのRGB画像
+                tmpPixels[i*3+1] = rgbPx[i*3+1];
+                tmpPixels[i*3+2] = rgbPx[i*3+2];
+                //tmpBinaryPx[i] = 0;
+            }
+        } else {
+            if (movieMode) {
                 if (blackFadeMode) {
                     tmpPixels[i*3+0] = (int)((float)movPx[i*3+0] * fadeEvent.getFadef()); //背景映像（黒フェード）
                     tmpPixels[i*3+1] = (int)((float)movPx[i*3+1] * fadeEvent.getFadef());
@@ -252,17 +283,78 @@ void testApp::update() {
                     tmpPixels[i*3+1] = movPx[i*3+1] + (int)(fadeEvent.getFadef() * (255-movPx[i*3+1]));
                     tmpPixels[i*3+2] = movPx[i*3+2] + (int)(fadeEvent.getFadef() * (255-movPx[i*3+2]));
                 }
-                tmpBinaryPx[i*3] = 255;
             } else {
                 tmpPixels[i*3+0] = rgbPx[i*3+0];
                 tmpPixels[i*3+1] = rgbPx[i*3+1];
                 tmpPixels[i*3+2] = rgbPx[i*3+2];
-                tmpBinaryPx[i*3] = 255;
+            }
+            //tmpBinaryPx[i] = 0;
+        }
+    }
+     */
+    
+    for (int y=0; y < depthImage.height; y++) {
+        for (int x=0; x < depthImage.width; x++) {
+            int i = x + y * depthImage.width;
+            if (x > ROI1.x && x < ROI2.x && y > ROI1.y && y < ROI2.y) {
+                if (dp[i] >= maxDistance) {
+                    int d = abs(dp[i] - maxDistance);
+                    if (movieMode) {
+                        if (d < wallThreshold) {
+                            tmpPixels[i*3+0] = 255; //境界線は白く
+                            tmpPixels[i*3+1] = 255;
+                            tmpPixels[i*3+2] = 255;
+                        } else {
+                            tmpPixels[i*3+0] = rgbPx[i*3+0]; //前景はKinectのRGB画像
+                            tmpPixels[i*3+1] = rgbPx[i*3+1];
+                            tmpPixels[i*3+2] = rgbPx[i*3+2];
+                        }
+                        //tmpBinaryPx[i] = 255;
+                    } else {
+                        tmpPixels[i*3+0] = rgbPx[i*3+0]; //ムービーモードでない場合、前景はKinectのRGB画像
+                        tmpPixels[i*3+1] = rgbPx[i*3+1];
+                        tmpPixels[i*3+2] = rgbPx[i*3+2];
+                        //tmpBinaryPx[i] = 0;
+                    }
+                } else {
+                    if (movieMode) {
+                        if (blackFadeMode) {
+                            tmpPixels[i*3+0] = (int)((float)movPx[i*3+0] * fadeEvent[0].getFadef()); //背景映像（黒フェード）
+                            tmpPixels[i*3+1] = (int)((float)movPx[i*3+1] * fadeEvent[0].getFadef());
+                            tmpPixels[i*3+2] = (int)((float)movPx[i*3+2] * fadeEvent[0].getFadef());
+                        } else {
+                            tmpPixels[i*3+0] = movPx[i*3+0] + (int)(fadeEvent[1].getFadef() * (255-movPx[i*3+0])); //背景映像（白フェード）
+                            tmpPixels[i*3+1] = movPx[i*3+1] + (int)(fadeEvent[1].getFadef() * (255-movPx[i*3+1]));
+                            tmpPixels[i*3+2] = movPx[i*3+2] + (int)(fadeEvent[1].getFadef() * (255-movPx[i*3+2]));
+                        }
+                    } else {
+                        tmpPixels[i*3+0] = rgbPx[i*3+0];
+                        tmpPixels[i*3+1] = rgbPx[i*3+1];
+                        tmpPixels[i*3+2] = rgbPx[i*3+2];
+                    }
+                    //tmpBinaryPx[i] = 0;
+                }
+            } else {
+                if (movieMode) {
+                    if (blackFadeMode) {
+                        tmpPixels[i*3+0] = (int)((float)movPx[i*3+0] * fadeEvent[0].getFadef()); //背景映像（黒フェード）
+                        tmpPixels[i*3+1] = (int)((float)movPx[i*3+1] * fadeEvent[0].getFadef());
+                        tmpPixels[i*3+2] = (int)((float)movPx[i*3+2] * fadeEvent[0].getFadef());
+                    } else {
+                        tmpPixels[i*3+0] = movPx[i*3+0] + (int)(fadeEvent[1].getFadef() * (255-movPx[i*3+0])); //背景映像（白フェード）
+                        tmpPixels[i*3+1] = movPx[i*3+1] + (int)(fadeEvent[1].getFadef() * (255-movPx[i*3+1]));
+                        tmpPixels[i*3+2] = movPx[i*3+2] + (int)(fadeEvent[1].getFadef() * (255-movPx[i*3+2]));
+                    }
+                } else {
+                    tmpPixels[i*3+0] = rgbPx[i*3+0];
+                    tmpPixels[i*3+1] = rgbPx[i*3+1];
+                    tmpPixels[i*3+2] = rgbPx[i*3+2];
+                }
             }
         }
     }
     mainImg.setFromPixels(tmpPixels, mainImg.width, mainImg.height);
-    depthBinaryImage.setFromPixels(tmpBinaryPx, depthBinaryImage.width, depthBinaryImage.height);
+    //depthBinaryImage.setFromPixels(tmpBinaryPx, depthBinaryImage.width, depthBinaryImage.height);
     free(tmpPixels);
     free(tmpBinaryPx);
     
@@ -281,7 +373,9 @@ void testApp::draw() {
     for (int i=0; i < depthContouFinder.nBlobs; i++) {
         int rndn = (int)ofRandom(5,10);
         for(int j=0; j < depthContouFinder.blobs[i].nPts; j+=rndn) {
-            shineImg[(int)ofRandom(0,6)].draw(depthContouFinder.blobs[i].pts[j], 10, 10);
+            int x = (depthContouFinder.blobs[i].pts[j].x / kinect.width) * wRect.width + wRect.x/2;
+            int y = (depthContouFinder.blobs[i].pts[j].y / kinect.height) * wRect.height - wRect.y/2;
+            shineImg[(int)ofRandom(0,6)].draw(x, y, 100, 100);
         }
     }
     
@@ -293,10 +387,10 @@ void testApp::draw() {
         if (shines[i].isDeath() || shines[i].pos.y > ofGetHeight() + 100) {
             shines.erase(shines.begin()+i);
         } else {
-            float shineSize = ofRandom(60, 200);
+            float shineSize = ofRandom(60, 150);
             float shinePosX = shines[i].pos.x - (shineSize / 2);
             float shinePosY = shines[i].pos.y - (shineSize / 2);
-            ofSetColor(255, 255, 255, 200);
+            ofSetColor(shines[i].col);
             shineImg[shines[i].imgId].draw(shinePosX, shinePosY, shineSize, shineSize);
         }
     }
@@ -304,11 +398,15 @@ void testApp::draw() {
         if (zukeis[i].isDeath()) {
             zukeis.erase(zukeis.begin()+i);
         } else {
-            float size = ofRandom(60, 200);
+            float size = 80;
             float posx = zukeis[i].pos.x - (size / 2);
             float posy = zukeis[i].pos.y - (size / 2);
+            ofPushMatrix();
+            ofTranslate(zukeis[i].pos.x, zukeis[i].pos.y, zukeis[i].pos.z);
+            ofRotateZ(zukeis[i].getRotate());
             ofSetColor(zukeis[i].getColor());
-            zukeiImg[zukeis[i].zukeiId].draw(posx, posy, size, size);
+            zukeiImg[zukeis[i].zukeiId].draw(-(size/2), -(size/2), size, size);
+            ofPopMatrix();
         }
     }
     
@@ -323,19 +421,43 @@ void testApp::draw() {
             shineImg[wallShines[i].imgId].draw(shinePosX, shinePosY, shineSize, shineSize);
         }
     }
-
-    for (int i = 0; i < ponBalloons.size(); i++) {
-        float w = 120;
-        float h = 200;
-        float x = ponBalloons[i].pos.x - (w / 2);
-        float y = ponBalloons[i].pos.y - (h / 4);
-        if (ponBalloons[i].pos.y < -h) {
-            ponBalloons.erase(ponBalloons.begin()+i);
+    
+    glEnable(GL_DEPTH_TEST);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glAlphaFunc(GL_GEQUAL, 0.5);
+	glEnable(GL_BLEND);
+    glEnable(GL_ALPHA_TEST);
+    for (int i = 0; i < balloons.size(); i++) {
+        float x = balloons[i].pos.x - (balloons[i].width / 2);
+        float y = balloons[i].pos.y - (balloons[i].height / 2);
+        if (balloons[i].pos.y < -balloons[i].height) {
+            balloons.erase(balloons.begin()+i);
         } else {
-            ofSetColor(255, 255, 255);
-            balloonImg.draw(x, y, w, h);
+            ofPushMatrix();
+            ofTranslate(balloons[i].pos.x, balloons[i].pos.y, balloons[i].pos.z);
+            ofSetColor(255, 255, 255, 255);
+            balloonImg[balloons[i].imageId].draw(-(balloons[i].width/2), -(balloons[i].height/2), balloons[i].width, balloons[i].height);
+            ofPopMatrix();
         }
     }
+    
+    for (int i = 0; i < flowers.size(); i++) {
+        float x = flowers[i].pos.x - (flowers[i].width / 2);
+        float y = flowers[i].pos.y - (flowers[i].height / 2);
+        if (flowers[i].pos.y > ofGetHeight()+400) {
+            flowers.erase(flowers.begin()+i);
+        } else {
+            ofPushMatrix();
+            ofTranslate(flowers[i].pos.x, flowers[i].pos.y, flowers[i].pos.z);
+            ofRotateZ(flowers[i].getRotate());
+            ofSetColor(255, 255, 255, 255);
+            flowerImg[flowers[i].imageId].draw(-(flowers[i].width/2), -(flowers[i].height/2), flowers[i].width, flowers[i].height);
+            ofPopMatrix();
+        }
+    }
+    glDisable(GL_BLEND);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_DEPTH_TEST);
 
     ofDisableAlphaBlending();
     ofPopStyle();
@@ -345,14 +467,13 @@ void testApp::draw() {
         ofPushStyle();
         ofEnableAlphaBlending();
         contourFinder.draw(wRect.x, wRect.y, wRect.width, wRect.height);
+//        depthContouFinder.draw(wRect.x, wRect.y, wRect.width, wRect.height);
         wallContourFinder.draw(wRect.x, wRect.y, wRect.width, wRect.height);
         
         ofSetColor(127, 127, 127, 100);
         ofRect(0, 600, ofGetWidth(), 200);
         
-        ofSetColor(0, 0, 255);
-        ofNoFill();
-        ofRect(ROI1.x, ROI1.y, ROI2.x-ROI1.x, ROI2.y-ROI1.y);
+        
         
         // パラメータ
         ofSetColor(255, 255, 255);
@@ -366,6 +487,14 @@ void testApp::draw() {
         << "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl;
         ofDrawBitmapString(reportStream.str(),20,622);
         ofDisableAlphaBlending();
+        
+        if (ROIDebug) {
+            ofSetColor(255, 255, 255);
+            kinect.draw(0, 0, kinect.width, kinect.height);
+            ofSetColor(0, 0, 255);
+            ofNoFill();
+            ofRect(ROI1.x, ROI1.y, ROI2.x-ROI1.x, ROI2.y-ROI1.y);
+        }
         ofPopStyle();
     }
 }
@@ -392,27 +521,48 @@ void testApp::keyPressed (int key) {
             break;
             
         case '4':
-            
+            blackFadeMode = false;
+            fadeEvent[1].setOn(!fadeEvent[1].getOn());
             break;
             
         case '5':
-            if (ponBalloons.size() < 500) {
+            blackFadeMode = true;
+            fadeEvent[0].setOn(!fadeEvent[0].getOn());
+            break;
+            
+        case '6':
+            if (balloons.size() < 100) {
                 for (int i=0; i < 50; i++) {
-                    Particle myBaloon;
+                    P3d myBaloon;
                     float vx = ofRandom(-5, 5);
-                    float vy = ofRandom(0, 5);
-                    myBaloon.setInitialCondition(ofRandom(0, ofGetWidth()), ofGetHeight()+100, vx, vy);
-                    myBaloon.setInitialGravity(0.02, ofRandom(0, ofGetWidth()), -100);
-                    ponBalloons.push_back(myBaloon);
+                    float vy = ofRandom(-10, 0);
+                    myBaloon.setInitialCondition(ofRandom(0, ofGetWidth()), ofGetHeight()+500, ofRandom(-600, 600), vx, vy, 0);
+                    myBaloon.setCorePoint(ofRandom(0, ofGetWidth()), -360, myBaloon.pos.z);
+                    myBaloon.setGravity(0.02);
+                    myBaloon.imageId = i % 2;
+                    myBaloon.width = 640;
+                    myBaloon.height = 360;
+                    balloons.push_back(myBaloon);
                 }
             }
             break;
             
-        case '6':
-            fadeEvent.setOn(!fadeEvent.getOn());
-            break;
-            
         case '7':
+            if (flowers.size() < 100) {
+                for (int i=0; i < 15; i++) {
+                    RotateParticle myParticle;
+                    float vx = ofRandom(-1, 1);
+                    float vy = ofRandom(8, 10);
+                    myParticle.setInitialCondition(ofRandom(0, ofGetWidth()), -480 - ofRandom(1200), ofRandom(-400, 200), vx, vy, 0);
+                    myParticle.setCorePoint(ofRandom(0, ofGetWidth()), -360, myParticle.pos.z);
+                    myParticle.setRotate(ofRandom(-2,2));
+                    myParticle.imageId = i % 2;
+                    myParticle.width = 640;
+                    myParticle.height = 480;
+                    flowers.push_back(myParticle);
+                }
+            }
+
             break;
             
         case '8':
@@ -495,6 +645,10 @@ void testApp::keyPressed (int key) {
             
         case ' ':
             debugMode = !debugMode;
+            break;
+            
+        case 'r':
+            ROIDebug = !ROIDebug;
             break;
             
         case 'f':

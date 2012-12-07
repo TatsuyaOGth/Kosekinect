@@ -16,3 +16,7 @@ bool Shines::isDeath() {
         return false;
     }
 }
+
+void Shines::setColor(ofColor c) {
+    col = c;
+}

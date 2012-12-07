@@ -12,6 +12,10 @@ public:
     float gravity; //重力
     ofPoint target; //引力源
     
+    int width;
+    int height;
+    int imageId;
+    
     Particle();
     virtual ~Particle(){};
     void resetForce();

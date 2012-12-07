@@ -9,6 +9,7 @@
 #include "RotateParticle.h"
 #include "RippleCircle.h"
 #include "FadeEvent.h"
+#include "P3d.h"
 
 class testApp : public ofBaseApp {
 public:
@@ -41,7 +42,7 @@ public:
 	ofxCvColorImage mainImg; //メイン画像
     ofxCvColorImage tempImg;
     
-    FadeEvent fadeEvent;
+    FadeEvent fadeEvent[2];
     
     bool bDrawPointCloud;
 	int nearThreshold;
@@ -60,18 +61,23 @@ public:
     vector <Shines> shines;
     vector <RotateParticle> zukeis;
     vector <Shines> wallShines;
-    vector <Particle> ponBalloons;
+    vector <P3d> balloons;
+    vector <RotateParticle> flowers;
     
-    ofImage balloonImg;
+    ofImage balloonImg[2];
+    ofImage flowerImg[2];
     ofImage shineImg[6];
     ofImage zukeiImg[5];
     ofVideoPlayer mov[2];
+    
+    ofColor shineCol[4];
     
     bool handShineMode;
     bool handZukeiMode;
     bool movieMode;
     bool blackFadeMode;
     bool debugMode;
+    bool ROIDebug;
 
     int maxDistance;
     

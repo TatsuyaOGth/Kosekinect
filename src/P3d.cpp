@@ -4,11 +4,14 @@
 //コンストラクタ(初期化)
 P3d::P3d(){
 	setInitialCondition(0,0,0,0,0,0);
-	damping = 0.01f;
-    gravity = 0.9;
+	damping = 0.0;
+    gravity = 0.0;
     coreMode = false;
     core = ofVec3f(ofGetWidth()/2, ofGetHeight()/2, -70);
     col.set(ofRandom(255), ofRandom(255), ofRandom(255));
+    imageId = 0;
+    width = 0;
+    height = 0;
 }
 
 //力(加速度)をリセット
@@ -34,6 +37,12 @@ void P3d::addDampingForce(){
 void P3d::setInitialCondition(float px, float py, float pz, float vx, float vy, float vz){
     pos.set(px, py, pz);
 	vel.set(vx, vy, vz);
+}
+void P3d::setGravity(float g) {
+    gravity = g;
+}
+void P3d::setDamping(float d) {
+    damping = d;
 }
 
 //引力源の位置を設定
@@ -65,10 +74,10 @@ void P3d::update(){
         
 	vel = vel + frc;
 	pos = pos + vel;
-    pos = core;
 }
 
 //描画
+/*
 void P3d::draw(){
     
     glEnable(GL_DEPTH_TEST);
@@ -88,6 +97,6 @@ void P3d::draw(){
     
     //ofLine(pos, core);
 }
-
+*/
 
 
